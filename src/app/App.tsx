@@ -274,7 +274,7 @@ async function callGroqModel(
         model,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.2,
-        max_tokens: 1024,
+        max_tokens: 2048,
       }),
     });
   } catch {
@@ -349,7 +349,10 @@ ${contextBlock}
 QUESTION: ${query}`;
 
   // Primary model first, then a fallback if it's persistently overloaded.
-  const modelsToTry = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"];
+  const modelsToTry = [
+  import.meta.env.VITE_GROQ_MODEL || "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b",
+];
   const maxAttemptsPerModel = 3;
 
   let lastError: unknown;
@@ -379,11 +382,6 @@ QUESTION: ${query}`;
     : new Error("Groq is currently unavailable. Please try again in a moment.");
 }
 
-// Above this size, sending every chunk to Groq on every question would be
-// wasteful/slow, so we fall back to keyword-based retrieval. Below it (true
-// for the 5-10 page docs this app is designed for), just send everything —
-// keyword pre-filtering can miss relevant passages that don't share exact
-// words with the question (e.g. "key findings" vs. "achieved X accuracy").
 const FULL_CONTEXT_CHAR_LIMIT = 20000;
 
 async function generateAnswer(
@@ -403,9 +401,6 @@ async function generateAnswer(
     };
   }
 
-  // Group once, by (document, page) — this exact grouping is what gets
-  // numbered "[Source N]" in the LLM prompt AND what's shown as source card
-  // [N] in the UI, so the two can never disagree.
   const groups = groupChunksByPage(contextForLLM);
   const sources = groupsToSources(groups);
 
@@ -684,7 +679,7 @@ export default function App() {
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: `⚠️ ${message}`,
+          content: ` ${message}`,
           timestamp: new Date(),
         },
       ]);
